@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Topic {
+  id        String   @id @default(cuid())
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  diagnosticSessions DiagnosticSession[]
+  knowledgeProfile   KnowledgeProfile?
+  learningPlan       LearningPlan?
+}
+
+model DiagnosticSession {
+  id        String   @id @default(cuid())
+  topicId   String
+  mode      String   // 'socratic' | 'quiz'
+  status    String   @default("in_progress") // 'in_progress' | 'completed'
+  messages  String   @default("[]") // JSON array of conversation turns
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+}
+
+model KnowledgeProfile {
+  id              String   @id @default(cuid())
+  topicId         String   @unique
+  level           String   // 'beginner' | 'intermediate' | 'advanced'
+  strengths       String   @default("[]") // JSON array
+  weaknesses      String   @default("[]") // JSON array
+  misconceptions  String   @default("[]") // JSON array
+  rawAssessment   String   @default("") // Full AI assessment text
+  createdAt       DateTime @default(now())
+
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+}
+
+model LearningPlan {
+  id        String   @id @default(cuid())
+  topicId   String   @unique
+  status    String   @default("draft") // 'draft' | 'active' | 'completed'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  topic  Topic           @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  pieces LearningPiece[]
+}
+
+model LearningPiece {
+  id          String   @id @default(cuid())
+  planId      String
+  orderIndex  Int
+  title       String
+  description String   @default("")
+  status      String   @default("pending") // 'pending' | 'content_ready' | 'in_progress' | 'completed' | 'needs_regen'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  plan            LearningPlan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  contentVersions ContentVersion[]
+  exercises       Exercise[]
+}
+
+model ContentVersion {
+  id               String   @id @default(cuid())
+  pieceId          String
+  version          Int      @default(1)
+  mdxContent       String
+  jsxComponents    String   @default("{}") // JSON - generated JSX component sources
+  isActive         Boolean  @default(true)
+  generationReason String   @default("initial") // 'initial' | 'regeneration'
+  createdAt        DateTime @default(now())
+
+  piece     LearningPiece @relation(fields: [pieceId], references: [id], onDelete: Cascade)
+  exercises Exercise[]
+}
+
+model Exercise {
+  id               String   @id @default(cuid())
+  pieceId          String
+  contentVersionId String
+  type             String   // 'quiz' | 'open_ended' | 'code_review'
+  prompt           String
+  expectedAnswer   String   @default("")
+  createdAt        DateTime @default(now())
+
+  piece          LearningPiece  @relation(fields: [pieceId], references: [id], onDelete: Cascade)
+  contentVersion ContentVersion @relation(fields: [contentVersionId], references: [id], onDelete: Cascade)
+  evaluations    Evaluation[]
+}
+
+model Evaluation {
+  id             String   @id @default(cuid())
+  exerciseId     String
+  userAnswer     String
+  score          Int      // 1-10
+  feedback       String
+  triggeredRegen Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+}
+
+model RateLimitLog {
+  id           String   @id @default(cuid())
+  agentName    String
+  tokensUsed   Int      @default(0)
+  costEstimate Float    @default(0)
+  createdAt    DateTime @default(now())
+}
