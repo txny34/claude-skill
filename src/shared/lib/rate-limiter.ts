@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db/client";
+import { prisma } from "@/shared/lib/db-client";
 
 const DEFAULT_LIMITS: Record<string, number> = {
   diagnostic: Number(process.env.DAILY_DIAGNOSTIC_LIMIT ?? 10),

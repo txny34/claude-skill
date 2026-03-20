@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { SessionProvider } from "@/components/layout/SessionProvider";
-import { Header } from "@/components/layout/Header";
+import { SessionProvider } from "@/shared/components/SessionProvider";
+import { Header } from "@/shared/components/Header";
 import { AppSidebar } from "./app-sidebar";
 import "./globals.css";
 

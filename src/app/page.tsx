@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/ui/button";
+import { Input } from "@/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/ui/card";
 
 export default function Home() {
   const [topic, setTopic] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -17,14 +18,24 @@ export default function Home() {
     if (!trimmed) return;
 
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch("/api/topic", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: trimmed }),
       });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setError(data?.error ?? "No se pudo crear el tema");
+        return;
+      }
+
       const data = await res.json();
       router.push(`/learn/${data.id}/diagnostic`);
+    } catch {
+      setError("Error de conexion. Intenta de nuevo.");
     } finally {
       setLoading(false);
     }
@@ -46,6 +57,9 @@ export default function Home() {
               onChange={(e) => setTopic(e.target.value)}
               disabled={loading}
             />
+            {error && (
+              <p className="text-sm text-destructive">{error}</p>
+            )}
             <Button type="submit" disabled={!topic.trim() || loading}>
               {loading ? "Creando..." : "Empezar"}
             </Button>
